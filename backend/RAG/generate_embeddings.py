@@ -1,5 +1,6 @@
 import os
 import requests
+import openai
 import pandas as pd
 import PyPDF2
 import torch
@@ -26,65 +27,70 @@ def split_text_into_chunks(text, chunk_size=1000, overlap=200):
     start = 0
 
     while start < len(text):
-        print(f"Processing chunk starting at position {start}")
         # Find a good break point near chunk_size
         end = min(start + chunk_size, len(text))
-        print(f"Initial end position: {end}")
 
+        # Only look for natural break points if we're not at the end of the text
         if end < len(text):
-            print("Looking for a natural break point...")
-            # Try to find a period, question mark, or newline to break at
+            # Try to find a period, question mark, exclamation mark, or newline to break at
             for char in ['. ', '? ', '! ', '\n']:
                 pos = text.rfind(char, start, end)
                 if pos != -1:
-                    end = pos + 1
-                    print(f"Found break at '{char}' at position {pos}, new end: {end}")
+                    end = pos + 2  # Include the period and space
                     break
-            else:
-                print("No natural break point found")
+
+        # Ensure we're getting a substantial chunk
+        if end <= start:
+            end = min(start + chunk_size, len(text))
 
         chunk_text = text[start:end].strip()
-        print(f"Adding chunk of length {len(chunk_text)}")
-        chunks.append(chunk_text)
 
-        start = end - overlap
-        print(f"Next chunk will start at position {start} (with overlap)")
+        # Only add non-empty chunks
+        if chunk_text:
+            chunks.append(chunk_text)
+
+        # Move the start position for the next chunk, ensuring we don't move backwards
+        start = max(start + chunk_size - overlap, end - overlap)
+
+        # If we can't advance, force advancement to avoid infinite loop
+        if start >= end:
+            start = end
 
     print(f"Finished splitting text into {len(chunks)} chunks")
     return chunks
 
-def generate_embeddings_using_api(texts, model_id="sentence-transformers/all-MiniLM-L6-v2"):
-    """Generate embeddings using Hugging Face API"""
-    hf_token = os.getenv("HF_TOKEN")
-    if not hf_token:
-        raise ValueError("HF_TOKEN environment variable not set")
+def generate_embeddings_using_openai(texts):
+    """Generate embeddings using OpenAI's text-embedding-ada-002 model"""
+    # Get OpenAI API key from environment variable
+    openai_api_key = os.getenv("OPENAI")
+    if not openai_api_key:
+        raise ValueError("OPENAI environment variable not set")
 
-    api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_id}"
-    headers = {"Authorization": f"Bearer {hf_token}"}
+    # Initialize the OpenAI client
+    client = openai.OpenAI(api_key=openai_api_key)
 
-    def query(texts):
-        response = requests.post(
-            api_url,
-            headers=headers,
-            json={"inputs": texts, "options": {"wait_for_model": True}}
-        )
-        if response.status_code != 200:
-            raise Exception(f"API request failed with status code {response.status_code}: {response.text}")
-        print(response.json())
-        return response.json()
-
-    # For large documents, we might need to batch
-    batch_size = 10
+    # Initialize a list to store all embeddings
     all_embeddings = []
+
+    # Process chunks in batches to avoid hitting rate limits
+    batch_size = 20
+    total_batches = (len(texts) - 1) // batch_size + 1
 
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i+batch_size]
-        print(f"Processing batch {i//batch_size + 1}/{(len(texts)-1)//batch_size + 1}")
-        output = query(batch)
-        all_embeddings.extend(output)
+        print(f"Processing batch {i//batch_size + 1}/{total_batches}")
+
+        # Call OpenAI API to get embeddings for the batch (new API format)
+        response = client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=batch
+        )
+
+        # Extract embeddings from response (new response format)
+        batch_embeddings = [data_item.embedding for data_item in response.data]
+        all_embeddings.extend(batch_embeddings)
 
     return all_embeddings
-
 
 def main():
     # Configuration
@@ -102,7 +108,7 @@ def main():
     print(f"Split into {len(chunks)} chunks")
 
     print("Generating embeddings...")
-    embeddings = generate_embeddings_using_api(chunks)
+    embeddings = generate_embeddings_using_openai(chunks)
 
     # Save embeddings
     df_embeddings = pd.DataFrame(embeddings)
