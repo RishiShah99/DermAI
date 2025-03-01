@@ -20,18 +20,60 @@ export default function Chat() {
   };
 
   const [toolCall, setToolCall] = useState<string>();
-  const { messages, input, handleInputChange, handleSubmit, isLoading } =
-    useChat({
-      maxSteps: 4,
-      onToolCall({ toolCall }) {
-        setToolCall(toolCall.toolName);
-      },
-      onError: (error) => {
-        toast.error("You've been rate limited, please try again later!");
-      },
-    });
 
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  // Create an initial welcome message
+  const initialWelcomeMessage: Message = {
+    id: "welcome-message",
+    role: "assistant",
+    content:
+      "Welcome to DermAI! I'm your skin health assistant. How can I help you today?",
+    createdAt: new Date(),
+  };
+
+  const [isMessageStreaming, setIsMessageStreaming] = useState(false);
+
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    setMessages,
+  } = useChat({
+    maxSteps: 4,
+    onToolCall({ toolCall }) {
+      setToolCall(toolCall.toolName);
+    },
+    onFinish() {
+      setIsMessageStreaming(false);
+    },
+    onResponse(response) {
+      setIsMessageStreaming(true);
+    },
+    onError: (error) => {
+      toast.error("You've been rate limited, please try again later!");
+    },
+  });
+
+  // Then calculate which message is streaming (it's always the last assistant message)
+  const streamingMessageId = useMemo(() => {
+    if (!isMessageStreaming) return null;
+
+    // Find the last assistant message
+    const assistantMessages = messages.filter((m) => m.role === "assistant");
+    if (assistantMessages.length === 0) return null;
+
+    return assistantMessages[assistantMessages.length - 1].id;
+  }, [isMessageStreaming, messages]);
+
+  // Add the welcome message when component mounts
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([initialWelcomeMessage]);
+    }
+  }, []);
+
+  const [isExpanded, setIsExpanded] = useState<boolean>(true); // Set to true to show chat immediately
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,10 +109,26 @@ export default function Chat() {
     }
   }, [isLoading, currentToolCall, messages]);
 
-  // Group messages into conversation pairs
+  // Modified to handle assistant-only message at the beginning
   const conversationPairs = useMemo(() => {
     const pairs = [];
-    for (let i = 0; i < messages.length; i += 2) {
+    let skipFirst = false;
+
+    // Check if the first message is the welcome message
+    if (
+      messages.length > 0 &&
+      messages[0].role === "assistant" &&
+      messages[0].id === "welcome-message"
+    ) {
+      pairs.push({
+        userMessage: undefined,
+        assistantMessage: messages[0],
+      });
+      skipFirst = true;
+    }
+
+    // Process the rest of the messages as usual, starting after welcome message if it exists
+    for (let i = skipFirst ? 1 : 0; i < messages.length; i += 2) {
       const userMessage = messages[i];
       const assistantMessage = messages[i + 1];
       if (userMessage && userMessage.role === "user") {
@@ -80,9 +138,11 @@ export default function Chat() {
         });
       }
     }
+
     // Handle odd number of messages (user message without response yet)
     if (
-      messages.length % 2 !== 0 &&
+      messages.length > 1 &&
+      messages.length % 2 !== (skipFirst ? 0 : 1) &&
       messages[messages.length - 1].role === "user"
     ) {
       pairs.push({
@@ -90,6 +150,7 @@ export default function Chat() {
         assistantMessage: undefined,
       });
     }
+
     return pairs;
   }, [messages]);
 
@@ -128,22 +189,29 @@ export default function Chat() {
                 {/* Display all conversation pairs */}
                 {conversationPairs.map((pair, index) => (
                   <div
-                    key={`conversation-${index}-${pair.userMessage.id}`}
+                    key={`conversation-${index}-${pair.assistantMessage?.id || pair.userMessage?.id}`}
                     className="flex flex-col gap-2"
                   >
                     <div className="px-2">
-                      <div className="dark:text-neutral-400 text-neutral-500 text-sm w-fit mb-1">
-                        {pair.userMessage.content}
-                      </div>
+                      {/* If there's a user message, show it */}
+                      {pair.userMessage && (
+                        <div className="dark:text-neutral-400 text-neutral-500 text-sm w-fit mb-1">
+                          {pair.userMessage.content}
+                        </div>
+                      )}
 
                       {/* If there's an assistant response, show it */}
                       {pair.assistantMessage ? (
                         <AssistantMessage
                           key={`assistant-${index}-${pair.assistantMessage.id}`}
                           message={pair.assistantMessage}
+                          isStreaming={
+                            pair.assistantMessage.id === streamingMessageId
+                          }
                         />
                       ) : (
                         /* If this is the latest message without response yet */
+                        pair.userMessage &&
                         index === conversationPairs.length - 1 && (
                           <Loading
                             key={`loading-${index}-${pair.userMessage.id}`}
@@ -162,7 +230,7 @@ export default function Chat() {
                 className={`bg-neutral-100 text-base w-full text-neutral-700 dark:bg-neutral-700 dark:placeholder:text-neutral-400 dark:text-neutral-300`}
                 required
                 value={input}
-                placeholder={"Ask me anything..."}
+                placeholder={"Ask me anything about skin health..."}
                 onChange={handleInputChange}
               />
             </form>
@@ -173,7 +241,13 @@ export default function Chat() {
   );
 }
 
-const AssistantMessage = ({ message }: { message: Message | undefined }) => {
+const AssistantMessage = ({
+  message,
+  isStreaming,
+}: {
+  message: Message | undefined;
+  isStreaming: boolean;
+}) => {
   if (message === undefined) return null;
 
   return (
@@ -182,10 +256,17 @@ const AssistantMessage = ({ message }: { message: Message | undefined }) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="whitespace-pre-wrap font-mono anti text-sm text-neutral-800 dark:text-neutral-200 overflow-hidden"
+      className="whitespace-pre-wrap font-mono anti text-sm text-neutral-800 dark:text-neutral-200 overflow-hidden flex"
       id="markdown"
     >
-      <MemoizedReactMarkdown>{message.content}</MemoizedReactMarkdown>
+      {isStreaming && (
+        <span className="mr-2 flex items-center">
+          <span className="h-2 w-2 bg-green-500 rounded-full inline-block animate-pulse" />
+        </span>
+      )}
+      <div className="flex-1">
+        <MemoizedReactMarkdown>{message.content}</MemoizedReactMarkdown>
+      </div>
     </motion.div>
   );
 };
@@ -218,7 +299,7 @@ const Loading = ({ tool }: { tool?: string }) => {
   );
 };
 
-const MemoizedReactMarkdown: React.FC<Options> = React.memo(
+export const MemoizedReactMarkdown: React.FC<Options> = React.memo(
   ReactMarkdown,
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children &&
