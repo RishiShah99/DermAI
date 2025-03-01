@@ -30,41 +30,25 @@ export default function Chat() {
     createdAt: new Date(),
   };
 
-  const [isMessageStreaming, setIsMessageStreaming] = useState(false);
-
   const {
     messages,
     input,
     handleInputChange,
     handleSubmit,
+    status,
     isLoading,
     setMessages,
   } = useChat({
-    maxSteps: 4,
+    maxSteps: 10,
     onToolCall({ toolCall }) {
       setToolCall(toolCall.toolName);
     },
-    onFinish() {
-      setIsMessageStreaming(false);
-    },
-    onResponse(response) {
-      setIsMessageStreaming(true);
-    },
     onError: (error) => {
-      toast.error("You've been rate limited, please try again later!");
+      toast.error("You've been rate limited, please try again later!", {
+        description: error.message,
+      });
     },
   });
-
-  // Then calculate which message is streaming (it's always the last assistant message)
-  const streamingMessageId = useMemo(() => {
-    if (!isMessageStreaming) return null;
-
-    // Find the last assistant message
-    const assistantMessages = messages.filter((m) => m.role === "assistant");
-    if (assistantMessages.length === 0) return null;
-
-    return assistantMessages[assistantMessages.length - 1].id;
-  }, [isMessageStreaming, messages]);
 
   // Add the welcome message when component mounts
   useEffect(() => {
@@ -77,6 +61,7 @@ export default function Chat() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    console.log(messages);
     if (messages.length > 0) setIsExpanded(true);
   }, [messages]);
 
@@ -205,9 +190,7 @@ export default function Chat() {
                         <AssistantMessage
                           key={`assistant-${index}-${pair.assistantMessage.id}`}
                           message={pair.assistantMessage}
-                          isStreaming={
-                            pair.assistantMessage.id === streamingMessageId
-                          }
+                          isStreaming={status === "streaming"}
                         />
                       ) : (
                         /* If this is the latest message without response yet */
@@ -230,6 +213,7 @@ export default function Chat() {
                 className={`bg-neutral-100 text-base w-full text-neutral-700 dark:bg-neutral-700 dark:placeholder:text-neutral-400 dark:text-neutral-300`}
                 required
                 value={input}
+                disabled={status === "streaming"}
                 placeholder={"Ask me anything about skin health..."}
                 onChange={handleInputChange}
               />
@@ -259,14 +243,14 @@ const AssistantMessage = ({
       className="whitespace-pre-wrap font-mono anti text-sm text-neutral-800 dark:text-neutral-200 overflow-hidden flex"
       id="markdown"
     >
-      {isStreaming && (
-        <span className="mr-2 flex items-center">
-          <span className="h-2 w-2 bg-green-500 rounded-full inline-block animate-pulse" />
-        </span>
-      )}
       <div className="flex-1">
         <MemoizedReactMarkdown>{message.content}</MemoizedReactMarkdown>
       </div>
+      {/* {isStreaming && (
+        <span className="mr-2 flex items-center">
+          <span className="h-2 w-2 bg-green-500 rounded-full inline-block animate-pulse" />
+        </span>
+      )} */}
     </motion.div>
   );
 };
