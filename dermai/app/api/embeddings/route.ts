@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
-import pdf from "pdf-parse";
+import pdf from "pdf-parse/lib/pdf-parse.js";
 
 import { createClient } from "@/supabase/server";
 
