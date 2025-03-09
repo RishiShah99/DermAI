@@ -133,7 +133,7 @@ export const findRelevantContent = async (userQuery: string) => {
       return [];
     }
 
-    console.log("Documents:", documents.length);
+    console.log("Documents:", documents);
     return documents || [];
   } catch (error) {
     console.error("Error in findRelevantContent:", error);

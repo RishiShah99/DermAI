@@ -269,10 +269,10 @@ const AssistantMessage = ({
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="whitespace-pre-wrap font-mono text-sm md:text-base text-neutral-800 dark:text-neutral-200 overflow-hidden bg-white dark:bg-neutral-850 p-3 rounded-lg shadow-sm"
+      className="font-mono text-sm md:text-base text-neutral-800 dark:text-neutral-200 overflow-hidden bg-white dark:bg-neutral-850 p-3 rounded-lg shadow-sm"
       id="markdown"
     >
-      <div className="flex-1">
+      <div className="prose">
         <MemoizedReactMarkdown>{message.content}</MemoizedReactMarkdown>
       </div>
       {/* {isStreaming && (
