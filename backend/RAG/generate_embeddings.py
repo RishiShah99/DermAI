@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
-
+pdf_path="/Users/vs/Downloads/What is Acne.pdf"
 def extract_text_from_pdf(pdf_path):
     """Extract text from a PDF file"""
     text = ""
@@ -94,7 +94,6 @@ def generate_embeddings_using_openai(texts):
 
 def main():
     # Configuration
-    pdf_path = "/Users/vs/Downloads/Jake_s_Resume__Anonymous_.pdf"
     output_path = "/Users/vs/Coding/DermAI/backend/RAG/embed.csv"
     # use_api = input("Use Hugging Face API? (y/n): ").lower().startswith('y')
 
