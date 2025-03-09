@@ -161,7 +161,11 @@ export default function Chat() {
       </header>
 
       <div className="w-full max-w-3xl mb-8">
-        <FileUpload onChange={handleFileUpload} />
+        <FileUpload
+          onChange={handleFileUpload}
+          files={files}
+          setFiles={setFiles}
+        />
       </div>
 
       <div className="flex flex-col items-center w-full max-w-3xl">

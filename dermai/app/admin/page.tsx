@@ -25,7 +25,6 @@ const Admin = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [password, setPassword] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
   const supabase = createClient();
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -68,6 +67,11 @@ const Admin = () => {
 
       if (uploadError) throw new Error(uploadError.message);
 
+      // instantly create public url for the file
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("files").getPublicUrl(`${fileId}/${fileName}`);
+
       // Update status to uploaded
       setFileStatuses((prev) =>
         prev.map((item) =>
@@ -78,7 +82,7 @@ const Admin = () => {
       );
 
       // Generate embeddings
-      await processFileWithEmbeddings(fileId, fileName);
+      await processFileWithEmbeddings(fileId, fileName, publicUrl);
     } catch (error) {
       console.error("Error uploading file:", error);
       setFileStatuses((prev) =>
@@ -97,6 +101,7 @@ const Admin = () => {
   const processFileWithEmbeddings = async (
     fileId: string,
     fileName: string,
+    publicURL: string,
   ) => {
     try {
       // Update status to processing
@@ -107,6 +112,7 @@ const Admin = () => {
       );
 
       // Call the embeddings API
+      console.log(publicURL);
       const response = await fetch("/api/embeddings", {
         method: "POST",
         headers: {
@@ -115,6 +121,7 @@ const Admin = () => {
         body: JSON.stringify({
           fileId,
           fileName,
+          publicURL,
         }),
       });
 
@@ -133,6 +140,9 @@ const Admin = () => {
       toast.success(`Successfully processed ${fileName}`, {
         description: "File uploaded and embeddings generated",
       });
+
+      // clear files
+      setFiles([]);
     } catch (error) {
       console.error("Error processing embeddings:", error);
       setFileStatuses((prev) =>
@@ -254,6 +264,8 @@ const Admin = () => {
         <div className="bg-white dark:bg-neutral-800 rounded-lg p-6 shadow-sm mb-8">
           <h2 className="text-xl font-medium mb-4">Upload Files</h2>
           <FileUpload
+            files={files}
+            setFiles={setFiles}
             onChange={handleFileUpload}
             message="Drag and drop documents to generate embeddings for the knowledge base."
           />

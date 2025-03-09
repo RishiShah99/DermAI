@@ -109,7 +109,7 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 
 export async function POST(request: Request) {
   try {
-    const { fileId, fileName } = await request.json();
+    const { fileId, fileName, publicURL } = await request.json();
 
     if (!fileId) {
       return NextResponse.json(
@@ -147,6 +147,7 @@ export async function POST(request: Request) {
     const embeddings = await generateEmbeddings(chunks);
     console.log(`Generated ${embeddings.length} embeddings`);
     // Store chunks and embeddings in the database
+    console.log(publicURL);
     const insertPromises = chunks.map((chunk, index) => {
       return supabase.from("documents").insert({
         title: fileName,
@@ -157,6 +158,7 @@ export async function POST(request: Request) {
           source: fileName,
           chunk_index: index,
           total_chunks: chunks.length,
+          public_url: publicURL,
         },
       });
     });
