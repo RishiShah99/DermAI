@@ -27,8 +27,10 @@ const secondaryVariant = {
 
 export const FileUpload = ({
   onChange,
+  message,
 }: {
   onChange?: (files: File[]) => void;
+  message?: string;
 }) => {
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -72,8 +74,9 @@ export const FileUpload = ({
           <p className="relative z-20 font-sans font-bold text-neutral-700 dark:text-neutral-300 text-base">
             Upload file
           </p>
-          <p className="relative z-20 font-sans font-normal text-neutral-400 dark:text-neutral-400 text-base mt-2">
-            Drag or drop your files here or click to upload
+          <p className="relative z-20 text-center font-sans font-normal text-neutral-400 dark:text-neutral-400 text-base mt-2">
+            {message ||
+              "Drag and drop pictures of your skin conditions or concerns to get an estimate of your skin condition."}
           </p>
           <div className="relative w-full mt-10 max-w-xl mx-auto">
             {files.length > 0 &&

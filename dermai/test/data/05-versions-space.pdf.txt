@@ -1,0 +1,205 @@
+
+
+DermAI - AI-Powered Dermatology Diagnosis 
+System 
+ Overview 
+DermAI is an AI-powered dermatological assistant designed to provide users with a preliminary diagnosis of 
+skin conditions before visiting a dermatologist. By leveraging deep learning and chatbot technology, DermAI 
+allows users to upload images of their skin concerns, classifies the condition using advanced models, and 
+offers medical insights along with urgency levels. 
+This tool aims to reduce waiting times, optimize dermatologists' workloads, and improve healthcare 
+efficiency. Given the shortage of dermatologists and long wait times for appointments, DermAI provides a 
+scalable solution for faster preliminary diagnoses and patient prioritization. 
+ Key Features 
+● Early Diagnosis: Provides users with an initial assessment of skin conditions for timely action. 
+● AI-Powered Efficiency: Deep learning models offer instant and accurate classifications. 
+● Reduced Healthcare Bottlenecks: Helps dermatologists focus on complex cases. 
+● Accessibility: Useful for individuals in areas with limited dermatology access. 
+● Smart Prioritization: Determines urgency, ensuring critical cases receive prompt attention. 
+ Technical Overview 
+● Platform: Web application (Next.js for frontend, Flask API for backend) with potential mobile 
+integration. 
+● Model: Convolutional Neural Network (CNN) trained on a multi-class dataset of skin diseases. 
+● User Input: Image upload + chatbot Q&A for symptom analysis. 
+● Output: Skin disease classification + probability score + medical recommendations. 
+ Dataset Preparation 
+● Inclusion of Diverse Skin Tones: Training on datasets that represent different ethnicities. 
+● Target Conditions: 
+○ Cancerous Lesions: Melanoma, Basal Cell Carcinoma 
+○ Chronic Skin Diseases: Psoriasis, Eczema, Rosacea 
+○ Infections: Fungal Infections, Impetigo, Cellulitis 
+○ Other Conditions: Acne, Vitiligo, Seborrheic Keratosis 
+● Data Processing: 
+○ Resize images to 224x224 pixels for efficiency. 
+○ Normalize images (RGB processing, grayscale conversions where needed). 
+○ Augment data (rotation, brightness shift, contrast variation). 
+○ Split dataset: 80% training, 10% validation, 10% testing. 
+ Model Development 
+● Transfer Learning Approach: Using pre-trained models such as VGG-16, EfficientNet, or 
+MobileNetV3. 
+● Optimization Techniques: 
+
+○ Hyperparameter tuning (learning rate, batch size, number of epochs). 
+○ Early stopping and dropout regularization to prevent overfitting. 
+○ Achieve >85% accuracy before deployment. 
+ Backend Development 
+● API Framework: Flask for handling image classification requests. 
+● Processing Pipeline: 
+○ Image upload handling. 
+○ Model inference for classification. 
+○ Data storage in Supabase database. 
+● JSON Response Structure: 
+{ 
+  "diagnosis": "Psoriasis", 
+  "confidence": 92.5, 
+  "recommendation": "Consult a dermatologist if irritation persists." 
+} 
+ 
+ Frontend Development 
+● Web Interface: Next.js-based UI for seamless user interaction. 
+● Features: 
+○ Image upload capability. 
+○ Display classification results with probability scores. 
+○ AI-powered chatbot (Google Gemini) for medical insights and symptom analysis. 
+ Challenges & Solutions 
+● Bias in Skin Tone Representation: 
+○ Use Fitzpatrick 17K dataset for diverse training. 
+○ Test real-world images from different ethnicities. 
+● Model Accuracy & Reliability: 
+○ Augment training data for better generalization. 
+○ Balance dataset to prevent class imbalance. 
+● Latency & Speed Optimization: 
+○ Deploy using FastAPI & TensorRT for performance improvement. 
+○ Utilize cloud computing for scalable inference handling. 
+ Future Enhancements 
+● AR-Based Skin Analysis: Real-time tracking and visualization. 
+● Teledermatology Integration: Connecting users directly with dermatologists. 
+● Mobile App Development: Ensuring wider accessibility and ease of use. 
+● Continuous Model Improvement: Crowdsourcing user data for enhanced accuracy. 
+● Expanded Disease Database: Improving classification across more conditions. 
+ Summary 
+
+DermAI is an AI-powered skin disease detection platform utilizing CNN-based models like 
+VGG16/EfficientNet. The system includes image classification, chatbot integration, and a web interface to 
+provide users with an accessible dermatological assistant. Future plans involve mobile integration, 
+telemedicine services, and AR-based skin analysis to further enhance accuracy and accessibility. 
+Project Plan Composed by Rishi’s Whiteboard:  
+ 
+ 
+Possible Datasets:  
+Skin Disease Classification Datasets 
+1. HAM10000 (Human Against Machine) 
+○ Size: 10,015 images 
+○ Conditions: Melanoma, basal cell carcinoma, benign keratosis, dermatofibroma, and more 
+○ Use Case: Excellent for multi-class classification, widely used in dermatology AI research 
+○ Skin Cancer MNIST: HAM10000 
+2. ISIC Archive (International Skin Imaging Collaboration) 
+○ Size: 25,000+ dermoscopic images 
+○ Conditions: Melanoma, basal cell carcinoma, actinic keratosis, and other skin cancers 
+○ Use Case: Highly reliable for cancer detection, includes metadata like age and skin type 
+3. Fitzpatrick 17K 
+○ Size: 16,577 images 
+○ Conditions: 114 skin conditions (eczema, psoriasis, vitiligo, fungal infections, etc.) 
+○ Use Case: Best for ensuring inclusivity by covering different Fitzpatrick skin types 
+○ Evaluating Deep Neural Networks Trained on Clinical Images in Dermatology With the 
+Fitzpatrick 17k Dataset 
+
+4. DermNet NZ Image Dataset 
+○ Size: 10,000+ images 
+○ Conditions: Wide variety, including acne, rosacea, and fungal infections 
+○ Use Case: Good for supplementing training data with real-world clinical images 
+○ Has 23 classes 
+○ Dermnet 
+○ densenet121 fc layer 
+i. Paper from this set: 
+https://openaccess.thecvf.com/content/CVPR2021W/ISIC/papers/Groh_Evaluating_
+Deep_Neural_Networks_Trained_on_Clinical_Images_in_Dermatology_CVPRW_20
+21_paper.pdf 
+○ Possible datasets: 
+i. Densenet 
+ii. ResNet50 
+ 
+ 
+ 
+ 
+RAG for chatbot perplexity sources: 
+ 
+https://www.mayoclinic.org/diseases-conditions/dermatitis-eczema/care-at-mayo-clinic/mac-20352390 
+https://my.clevelandclinic.org/canada/services/dermatology 
+https://www.aad.org/member/clinical-quality/guidelines 
+https://www.mayoclinic.org/diseases-conditions/dermatitis-eczema/care-at-mayo-clinic/mac-20352390 
+https://my.clevelandclinic.org/canada/services/dermatology 
+https://www.aad.org/member/clinical-quality/guidelines 
+https://www.health.harvard.edu/promotions/harvard-health-publications/inflammatory-skin-conditions 
+https://www.cancer.gov/types/skin/patient/skin-prevention-pdq 
+https://newsnetwork.mayoclinic.org/discussion/skin-disease-patients-show-response-to-targeted-treatment/ 
+https://clevelandcliniclondon.uk/clinical-institutes/medical-subspecialties/dermatology 
+https://pubmed.ncbi.nlm.nih.gov/26897386/ 
+https://elht.nhs.uk/application/files/4415/4454/4746/DERMATOLOGY_GUIDELINES_BOOKLET.pdf 
+https://www.niams.nih.gov/labs/dermatology-branch 
+https://elht.nhs.uk/download_file/view/1352 
+https://www.dhs.wisconsin.gov/skin-infection/prevention-disinfection.htm 
+
+https://skin-analytics.com/news/research/discussing-the-systematic-review-of-skin-cancer-datasets-in-the-la
+ncet-skin-analytics-response-2/ 
+https://scholarlypublications.universiteitleiden.nl/access/item:3453605/view 
+https://pubmed.ncbi.nlm.nih.gov/21281988/ 
+https://www.fda.gov/about-fda/cder-offices-and-divisions/office-immunology-and-inflammation-division-derm
+atology-and-dentistry-ddd 
+https://dermatology.ca/public-patients/recognized-products/skincare/ 
+https://eadv.org/patient-corner/patient-leaflets/ 
+https://pubmed.ncbi.nlm.nih.gov/34772649/ 
+https://discovery.dundee.ac.uk/en/publications/british-association-of-dermatologists-guidelines-for-the-mana
+geme 
+https://www.canada.ca/content/dam/hc-sc/migration/hc-sc/fniah-spnia/alt_formats/pdf/services/nurs-infirm/cl
+ini/adult/skin-peau-eng.pdf 
+https://www.canada.ca/en/health-canada/services/consumer-product-safety/cosmetics/regulatory-informatio
+n.html 
+https://sunnybrook.ca/content/?page=derm-position-statement 
+https://www.cma.ca/sites/default/files/2019-01/dermatology-e-v2.pdf 
+https://hms.harvard.edu/news/new-clues-head-scratching-mystery-itch 
+https://www.cdc.gov/skin-cancer/prevention/index.html 
+https://www.mayoclinic.org/departments-centers/dermatology/sections/overview/ovc-20420526 
+https://www.clevelandclinicmeded.com/medicalpubs/diseasemanagement/dermatology/nonmelanoma-skin-
+cancer/ 
+https://e-catalogue.jhu.edu/medicine/medical-students/subjects-instruction/dermatology/ 
+https://www.health.harvard.edu/promotions/harvard-health-publications/skin-care-and-repair 
+https://www.nhs.uk/live-well/seasonal-health/sunscreen-and-sun-safety/ 
+https://www.mayoclinichealthsystem.org/services-and-treatments/dermatology 
+https://clevelandcliniclabs.com/our-laboratories/pathology-subspecialty-consultative-services/dermatopathol
+ogy/ 
+https://www2.gov.bc.ca/assets/gov/health/conducting-health-research/data-access/johns-hopkins-acg-syste
+m-technical-reference-guide.pdf 
+https://www.health.harvard.edu/diseases-and-conditions/inflammatory-skin-conditions-eczema-seborrheic-d
+ermatitis-and-psoriasis 
+https://www.cancerresearchuk.org/about-cancer/causes-of-cancer/sun-uv-and-cancer/sun-safety 
+
+https://www.cancer.gov/types/skin/hp/skin-prevention-pdq 
+https://www.med.unc.edu/derm/research/ 
+https://www.hopkinsmedicine.org/dermatology 
+https://rightdecisions.scot.nhs.uk/media/yttfkxkk/dermatology_guide__amended_may_2012_-1.pdf 
+https://www.cdc.gov/mrsa/prevention/index.html 
+https://pmc.ncbi.nlm.nih.gov/articles/PMC5480135/ 
+https://www.pennmedicine.org/departments-and-centers/dermatology/research/research-interests 
+https://www.england.nhs.uk/long-read/referral-optimisation-for-people-with-skin-conditions/ 
+https://www.cdc.gov/skin-cancer/sun-safety/index.html 
+https://www.aura.ca/en/skin-cancer/ 
+https://www.sidnet.org/dermatology-research-fellowships-at-the-nih/ 
+https://www.lindushealth.com/blog/fda-dermatology-clinical-trial-guidance-a-comprehensive-overview 
+https://webprod.hc-sc.gc.ca/nhpid-bdipsn/dbImages/mono_medicated-skin-care-products_english.pdf 
+https://pubmed.ncbi.nlm.nih.gov/34004067/ 
+https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(62)90525-1/fulltext 
+https://academic.oup.com/bjd/pages/general-instructions 
+https://www.lindushealth.com/blog/understanding-fda-dermatology-clinical-trial-regulations 
+https://webprod.hc-sc.gc.ca/nhpid-bdipsn/atReq?atid=skin_peau&lang=eng 
+https://eadv.org/ 
+https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(01)79538-4/fulltext 
+https://academic.oup.com/bjd/pages/bad-guidelines 
+https://www.aad.org/member/clinical-quality/guidelines/psoriasis 
+https://www.canada.ca/en/health-canada/services/consumer-product-safety/cosmetics/labelling/safety-ingre
+dients.html 
+https://dermatology.ca/ 
+https://journals.sagepub.com/doi/full/10.1177/1203475416685710 
+https://pubmed.ncbi.nlm.nih.gov/28300450/ 
+https://choosingwiselycanada.org/recommendation/dermatology/ 
+https://www.cmaj.ca/content/188/2/118 

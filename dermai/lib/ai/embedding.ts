@@ -1,7 +1,6 @@
 import { embed } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { HfInference } from "@huggingface/inference";
-import { createClient } from "@/app/utils/supabase/server";
+import { createClient } from "@/supabase/server";
 
 const embeddingModel = openai.embedding("text-embedding-ada-002");
 

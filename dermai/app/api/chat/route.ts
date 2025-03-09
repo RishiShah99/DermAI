@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     - For general greetings or non-medical chat, respond naturally and professionally
 
     INFORMATION RETRIEVAL PROCESS (only use when user asks question):
-    - Use tools on all requests that asks any type of question to ensure accurate information
+    - Use tools on EVERY REQUEST
     - First use the understandQuery tool to analyze the question
     - Then use getInformation to find relevant content from your knowledge base
     - If a response requires multiple tools, call them sequentially without interim responses

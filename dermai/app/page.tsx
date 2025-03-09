@@ -140,30 +140,53 @@ export default function Chat() {
   }, [messages]);
 
   return (
-    <div className="fc sm:pt-16 min-h-screen w-full dark:bg-neutral-900 px-4 md:px-0 py-4">
-      <FileUpload onChange={handleFileUpload} />
+    <div className="min-h-screen w-full dark:bg-neutral-900 px-4 md:px-0 py-4 flex flex-col items-center">
+      {/* Title and subtitle section */}
+      <header className="w-full max-w-3xl text-center mb-8 pt-8 md:pt-12">
+        <motion.h1
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 bg-gradient-to-r from-neutral-800 to-neutral-600 dark:from-neutral-200 dark:to-neutral-400 text-transparent bg-clip-text"
+        >
+          DermAI
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="text-neutral-600 dark:text-neutral-300 text-lg md:text-xl max-w-xl mx-auto"
+        >
+          Your AI-powered assistant for skin health education and information
+        </motion.p>
+      </header>
 
-      <div className="flex flex-col items-center w-full max-w-[500px]">
+      <div className="w-full max-w-3xl mb-8">
+        <FileUpload onChange={handleFileUpload} />
+      </div>
+
+      <div className="flex flex-col items-center w-full max-w-3xl">
         <motion.div
           animate={{
-            minHeight: isExpanded ? 200 : 0,
-            padding: isExpanded ? 12 : 0,
+            height: isExpanded ? "auto" : 0,
+            padding: isExpanded ? 16 : 0,
+            marginTop: isExpanded ? 16 : 0,
           }}
           transition={{
             type: "spring",
-            bounce: 0.5,
+            bounce: 0.3,
+            duration: 0.6,
           }}
           className={cn(
-            "rounded-lg w-full ",
+            "rounded-lg w-full",
             isExpanded
-              ? "bg-neutral-200 dark:bg-neutral-800"
+              ? "bg-neutral-200 dark:bg-neutral-800 shadow-md"
               : "bg-transparent",
           )}
         >
-          <div className="flex flex-col w-full justify-between gap-2">
+          <div className="flex flex-col w-full justify-between gap-4">
             <div
               ref={chatContainerRef}
-              className="max-h-[70vh] overflow-y-auto pb-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
+              className="max-h-[60vh] md:max-h-[70vh] overflow-y-auto pb-4 px-2 md:px-4 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent"
             >
               <motion.div
                 transition={{
@@ -175,40 +198,38 @@ export default function Chat() {
                 {conversationPairs.map((pair, index) => (
                   <div
                     key={`conversation-${index}-${pair.assistantMessage?.id || pair.userMessage?.id}`}
-                    className="flex flex-col gap-2"
+                    className="flex flex-col gap-3"
                   >
-                    <div className="px-2">
-                      {/* If there's a user message, show it */}
-                      {pair.userMessage && (
-                        <div className="dark:text-neutral-400 text-neutral-500 text-sm w-fit mb-1">
-                          {pair.userMessage.content}
-                        </div>
-                      )}
+                    {/* If there's a user message, show it */}
+                    {pair.userMessage && (
+                      <div className="dark:text-neutral-300 text-neutral-600 text-sm md:text-base w-fit mb-1 bg-neutral-100 dark:bg-neutral-700 px-3 py-2 rounded-lg self-end">
+                        {pair.userMessage.content}
+                      </div>
+                    )}
 
-                      {/* If there's an assistant response, show it */}
-                      {pair.assistantMessage ? (
-                        <AssistantMessage
-                          key={`assistant-${index}-${pair.assistantMessage.id}`}
-                          message={pair.assistantMessage}
-                          isStreaming={status === "streaming"}
+                    {/* If there's an assistant response, show it */}
+                    {pair.assistantMessage ? (
+                      <AssistantMessage
+                        key={`assistant-${index}-${pair.assistantMessage.id}`}
+                        message={pair.assistantMessage}
+                        isStreaming={status === "streaming"}
+                      />
+                    ) : (
+                      /* If this is the latest message without response yet */
+                      pair.userMessage &&
+                      index === conversationPairs.length - 1 && (
+                        <Loading
+                          key={`loading-${index}-${pair.userMessage.id}`}
+                          tool={currentToolCall}
                         />
-                      ) : (
-                        /* If this is the latest message without response yet */
-                        pair.userMessage &&
-                        index === conversationPairs.length - 1 && (
-                          <Loading
-                            key={`loading-${index}-${pair.userMessage.id}`}
-                            tool={currentToolCall}
-                          />
-                        )
-                      )}
-                    </div>
+                      )
+                    )}
                   </div>
                 ))}
               </motion.div>
             </div>
 
-            <form onSubmit={handleSubmit} className="flex space-x-2 mt-2">
+            <form onSubmit={handleSubmit} className="flex space-x-2 mt-2 px-2">
               <Input
                 className={`bg-neutral-100 text-base w-full text-neutral-700 dark:bg-neutral-700 dark:placeholder:text-neutral-400 dark:text-neutral-300`}
                 required
@@ -220,6 +241,14 @@ export default function Chat() {
             </form>
           </div>
         </motion.div>
+
+        {/* Footer info */}
+        <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 mt-4">
+          <p>
+            DermAI provides educational information only. Always consult a
+            healthcare professional for medical advice.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -237,17 +266,17 @@ const AssistantMessage = ({
   return (
     <motion.div
       key={`message-${message.id}`}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      initial={{ opacity: 0, y: 5 }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
-      className="whitespace-pre-wrap font-mono anti text-sm text-neutral-800 dark:text-neutral-200 overflow-hidden flex"
+      className="whitespace-pre-wrap font-mono text-sm md:text-base text-neutral-800 dark:text-neutral-200 overflow-hidden bg-white dark:bg-neutral-850 p-3 rounded-lg shadow-sm"
       id="markdown"
     >
       <div className="flex-1">
         <MemoizedReactMarkdown>{message.content}</MemoizedReactMarkdown>
       </div>
       {/* {isStreaming && (
-        <span className="mr-2 flex items-center">
+        <span className="ml-2 inline-flex items-center">
           <span className="h-2 w-2 bg-green-500 rounded-full inline-block animate-pulse" />
         </span>
       )} */}
@@ -269,7 +298,7 @@ const Loading = ({ tool }: { tool?: string }) => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ type: "spring" }}
-      className="overflow-hidden flex justify-start items-center"
+      className="overflow-hidden flex justify-start items-center bg-white/80 dark:bg-neutral-800/80 p-3 rounded-lg shadow-sm"
     >
       <div className="flex flex-row gap-2 items-center">
         <div className="animate-spin dark:text-neutral-400 text-neutral-500">
