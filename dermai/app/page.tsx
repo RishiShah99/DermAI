@@ -39,10 +39,11 @@ export default function Chat() {
     isLoading,
     setMessages,
   } = useChat({
-    maxSteps: 10,
+    maxSteps: 3,
     onToolCall({ toolCall }) {
       setToolCall(toolCall.toolName);
     },
+    streamProtocol: "data",
     onError: (error) => {
       toast.error("You've been rate limited, please try again later!", {
         description: error.message,
@@ -75,6 +76,7 @@ export default function Chat() {
 
   const currentToolCall = useMemo(() => {
     const tools = messages?.slice(-1)[0]?.toolInvocations;
+    console.log(tools);
     if (tools && toolCall === tools[0].toolName) {
       return tools[0].toolName;
     } else {
@@ -220,13 +222,10 @@ export default function Chat() {
                       />
                     ) : (
                       /* If this is the latest message without response yet */
-                      pair.userMessage &&
-                      index === conversationPairs.length - 1 && (
-                        <Loading
-                          key={`loading-${index}-${pair.userMessage.id}`}
-                          tool={currentToolCall}
-                        />
-                      )
+                      <Loading
+                        // key={`loading-${index}-${pair.userMessage.id}`}
+                        tool={currentToolCall}
+                      />
                     )}
                   </div>
                 ))}
@@ -265,6 +264,7 @@ const AssistantMessage = ({
   message: Message | undefined;
   isStreaming: boolean;
 }) => {
+  console.log("AssistantMessage", message);
   if (message === undefined) return null;
 
   return (
@@ -290,10 +290,10 @@ const AssistantMessage = ({
 
 const Loading = ({ tool }: { tool?: string }) => {
   const toolName =
-    tool === "getInformation"
-      ? "Getting information"
-      : tool === "addResource"
-        ? "Adding information"
+    tool === "understandQuery"
+      ? "Understanding query"
+      : tool === "getInformation"
+        ? "Getting information"
         : "Thinking";
 
   return (

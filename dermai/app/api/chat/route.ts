@@ -1,5 +1,4 @@
 // import { createResource } from "@/lib/actions/resources";
-// import { findRelevantContent } from "@/lib/ai/embedding";
 import { findRelevantContent } from "@/lib/ai/embedding";
 import { google } from "@ai-sdk/google";
 
@@ -13,6 +12,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
+    maxSteps: 2,
     model: google("gemini-2.0-flash-001"),
     messages,
     system: `You are DermAI, a friendly and professional assistant specializing in skin health and skin diseases, while also acting as the user's second brain for their medical information.
@@ -25,10 +25,18 @@ export async function POST(req: Request) {
 
     INFORMATION RETRIEVAL PROCESS (only use when user asks question):
     - Use tools on EVERY REQUEST
-    - First use the understandQuery tool to analyze the question
-    - Then use getInformation to find relevant content from your knowledge base
+    - First use the understandQuery tool to analyze the question, then use getInformation to find relevant content from your knowledge base
+    - IF YOU ARE USING BOTH TOOLS, DO NOT RESPOND BEFORE RUNNING BOTH TOOLS
+    - In your final response, answer the user, and include the sources that you used in the annotations, not in the response itself
     - If a response requires multiple tools, call them sequentially without interim responses
     - ONLY respond to questions using information retrieved from tool calls
+    IMPORTANT: After answering the question, include source annotations in this format at the end of your response:
+
+      ---
+      Sources:
+      - [Source 1](source1-url)
+      - [Source 2](source2-url)
+      // Include additional sources as needed
 
     RESPONSE QUALITY STANDARDS:
     - Provide detailed, educational responses based on tool-retrieved information (again, only when appropriate)
@@ -47,9 +55,10 @@ export async function POST(req: Request) {
     - Use common sense reasoning based on the information you do have when appropriate
 
     Remember: You are a helpful resource for skin health information, but always emphasize the importance of consulting healthcare professionals for diagnosis and treatment. Your goal is to be both informative and responsible in your assistance.`,
+    // toolChoice: "required",
     tools: {
       getInformation: tool({
-        description: `get information from your knowledge base to answer questions.`,
+        description: `get information from your knowledge base to answer questions. Use this after using the understandQuery tool. Use this tool to find relevant information to answer the user's question.`,
         parameters: z.object({
           question: z.string().describe("the users question"),
           similarQuestions: z.array(z.string()).describe("keywords to search"),
@@ -62,7 +71,6 @@ export async function POST(req: Request) {
             ),
           );
 
-          // console.log("Results:", results);
           // Flatten the array of arrays and remove duplicates based on 'name'
           const uniqueResults = Array.from(
             new Map(results.flat().map((item) => [item?.id, item])).values(),
@@ -71,7 +79,7 @@ export async function POST(req: Request) {
         },
       }),
       understandQuery: tool({
-        description: `understand the users query. use this tool on every prompt.`,
+        description: `understand the users query. use this tool on every prompt. Directly after this, use the getInformation tool to find relevant information to answer the user's question.`,
         parameters: z.object({
           query: z.string().describe("the users query"),
           toolsToCallInOrder: z
