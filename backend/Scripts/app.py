@@ -1,89 +1,135 @@
-# Flask Pipeline for HOSA Project
-# TODO: Figure out exactly what the return of the machine learning model is, and how I can fix it. 
-
-from flask import Flask, request, render_template, send_file, redirect, url_for
-import os
-import numpy as np
+from flask import Flask, request, jsonify
+import requests
 import torch
-from torch import nn
 import torchvision.transforms as transforms
 from PIL import Image
+from io import BytesIO
+from supabase import create_client, Client
+from torch import nn
 
-def create_app():
-    app = Flask(__name__)
+"""
+Image Classification API using DenseNet121
 
-    # Load the model
-    model = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=False)
-    num_features = model.classifier.in_features
-    model.classifier = nn.Sequential(
-        nn.Linear(num_features, 512),
-        nn.ReLU(),
-        nn.Dropout(0.4),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Dropout(0.3),
-        nn.Linear(256, 23) 
-    )
-    model.load_state_dict(torch.load('Models/model_0.pth', map_location=torch.device('cpu')))
-    model.eval()
+This Flask application provides an endpoint for classifying images stored in Supabase.
+The model is a fine-tuned DenseNet121 that classifies images into 23 categories.
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model.to(device)
+To use this API:
+1. Upload an image to your Supabase storage bucket named 'images'
+2. Send a POST request to /classify with the following JSON body:
+   {
+       "image_id": "your-image-id-from-supabase"
+   }
 
-    # Preprocessing function
-    def preprocess_image(image):
-        transform = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        ])
-        return transform(image).unsqueeze(0).to(device)
+Example usage:
+    curl -X POST http://your-server/classify 
+         -H "Content-Type: application/json" 
+         -d '{"image_id": "example-image-123.jpg"}'
 
-    @app.route('/')
-    def index():
-        return render_template('index.html')
+Response format:
+    Success: {"image_id": "example-image-123.jpg", "predicted_class": 5}
+    Error: {"error": "error message"}
+"""
 
-    @app.route('/upload', methods=['POST'])
-    def upload():
-        if 'image' not in request.files:
-            print("No file part in request")
-            return redirect(url_for('index', error="No file selected"))
+# Flask App Initialization
+app = Flask(__name__)
 
-        file = request.files['image']
-        if file.filename == '':
-            print("No selected file")
-            return redirect(url_for('index', error="No selected file"))
+# Supabase Credentials
+SUPABASE_URL = "YOUR_SUPABASE_URL"
+SUPABASE_KEY = "YOUR_SUPABASE_API_KEY"
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-        if allowed_file(file.filename):
-            filepath = os.path.join('static/uploads', file.filename)
-            file.save(filepath)
-            print(f"File saved at: {filepath}")
+# Load the pre-trained DenseNet121 model and modify for our classification task
+model = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=False)
+num_features = model.classifier.in_features
+model.classifier = nn.Sequential(
+    nn.Linear(num_features, 512),
+    nn.ReLU(),
+    nn.Dropout(0.4),
+    nn.Linear(512, 256),
+    nn.ReLU(),
+    nn.Dropout(0.3),
+    nn.Linear(256, 23)  # Final layer with 23 output classes
+)
+model.load_state_dict(torch.load('Models/model_0.pth', map_location=torch.device('cpu')))
+model.eval()
 
-            # Open image
-            image = Image.open(filepath).convert("RGB")
-            image = preprocess_image(image)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model.to(device)
 
-            # Make prediction
-            with torch.no_grad():
-                outputs = model(image)
-                predicted_class = torch.argmax(outputs, dim=1).item()
-            
-            print(f"Prediction: {predicted_class}")
-
-            return render_template('index.html', result=predicted_class, image_url=filepath)
-        
-        print("Invalid file format")
-        return redirect(url_for('index', error="Invalid file format"))
-
-
-    def allowed_file(filename):
-        return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
-
-    if not os.path.exists('static/uploads'):
-        os.makedirs('static/uploads')
+def preprocess_image(image_bytes):
+    """
+    Preprocess the input image for the model.
     
-    return app
+    Args:
+        image_bytes (bytes): Raw image data in bytes
+        
+    Returns:
+        torch.Tensor: Preprocessed image tensor ready for model input
+        
+    Process:
+    1. Resize image to 512x512 pixels
+    2. Convert to tensor
+    3. Normalize using ImageNet statistics
+    4. Add batch dimension
+    """
+    transform = transforms.Compose([
+        transforms.Resize((512, 512)),  # Resize to DenseNet121 input size
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])  # ImageNet normalization
+    ])
+    image = Image.open(BytesIO(image_bytes)).convert("RGB")
+    return transform(image).unsqueeze(0)
 
+def fetch_image_from_supabase(image_id):
+    """
+    Fetch image data from Supabase storage.
+    
+    Args:
+        image_id (str): The ID/path of the image in Supabase storage
+        
+    Returns:
+        bytes: Raw image data
+    """
+    res = supabase.storage.from_('images').download(image_id)  # 'images' is the storage bucket
+    return res
+
+@app.route('/classify', methods=['POST'])
+def classify_image():
+    """
+    Endpoint to classify an image stored in Supabase.
+    
+    Expected JSON payload:
+    {
+        "image_id": "path/to/your/image.jpg"
+    }
+    
+    Returns:
+        JSON response with classification result or error message
+    """
+    data = request.get_json()
+    image_id = data.get("image_id")
+
+    if not image_id:
+        return jsonify({"error": "No image_id provided"}), 400
+
+    try:
+        # Fetch Image from Supabase
+        image_bytes = fetch_image_from_supabase(image_id)
+        image_tensor = preprocess_image(image_bytes)
+
+        # Run Classification
+        with torch.no_grad():
+            outputs = model(image_tensor)
+            predicted_class = outputs.argmax(1).item()
+
+        # Save Classification Result in Supabase DB
+        supabase.table("image_results").insert({"image_id": image_id, "class": predicted_class}).execute()
+
+        return jsonify({"image_id": image_id, "predicted_class": predicted_class}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# Run Flask App
 if __name__ == '__main__':
-    app = create_app()
     app.run(debug=True)
