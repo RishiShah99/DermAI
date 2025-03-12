@@ -93,18 +93,37 @@ def fetch_image_from_supabase(image_id):
     res = supabase.storage.from_('images').download(image_id)  # 'images' is the storage bucket
     return res
 
+# Define class labels
+class_labels = [
+    "Acne and Rosacea Photos",
+    "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions",
+    "Atopic Dermatitis Photos",
+    "Bullous Disease Photos",
+    "Cellulitis Impetigo and other Bacterial Infections",
+    "Eczema Photos",
+    "Exanthems and Drug Eruptions",
+    "Hair Loss Photos Alopecia and other Hair Diseases",
+    "Herpes HPV and other STDs Photos",
+    "Light Diseases and Disorders of Pigmentation",
+    "Lupus and other Connective Tissue Diseases",
+    "Melanoma Skin Cancer Nevi and Moles",
+    "Nail Fungus and other Nail Disease",
+    "Poison Ivy Photos and other Contact Dermatitis",
+    "Psoriasis Pictures Lichen Planus and Related Diseases",
+    "Scabies Lyme Disease and other Infestations and Bites",
+    "Seborrheic Keratoses and other Benign Tumors",
+    "Systemic Disease",
+    "Tinea Ringworm Candidiasis and other Fungal Infections",
+    "Urticaria Hives",
+    "Vascular Tumors",
+    "Vasculitis Photos",
+    "Warts Molluscum and other Viral Infections"
+]
+
 @app.route('/classify', methods=['POST'])
 def classify_image():
     """
     Endpoint to classify an image stored in Supabase.
-    
-    Expected JSON payload:
-    {
-        "image_id": "path/to/your/image.jpg"
-    }
-    
-    Returns:
-        JSON response with classification result or error message
     """
     data = request.get_json()
     image_id = data.get("image_id")
@@ -120,12 +139,13 @@ def classify_image():
         # Run Classification
         with torch.no_grad():
             outputs = model(image_tensor)
-            predicted_class = outputs.argmax(1).item()
+            predicted_class_index = outputs.argmax(1).item()
+            predicted_label = class_labels[predicted_class_index]  # Get actual class name
 
         # Save Classification Result in Supabase DB
-        supabase.table("image_results").insert({"image_id": image_id, "class": predicted_class}).execute()
+        supabase.table("image_results").insert({"image_id": image_id, "class": predicted_label}).execute()
 
-        return jsonify({"image_id": image_id, "predicted_class": predicted_class}), 200
+        return jsonify({"image_id": image_id, "predicted_class": predicted_label}), 200  # Return class name instead of index
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
