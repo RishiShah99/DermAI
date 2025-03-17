@@ -6,6 +6,13 @@ from PIL import Image
 from io import BytesIO
 from supabase import create_client, Client
 from torch import nn
+from dotenv import load_dotenv
+import os
+
+
+# Load environment variables
+load_dotenv()
+
 
 """
 Image Classification API using DenseNet121
@@ -21,8 +28,8 @@ To use this API:
    }
 
 Example usage:
-    curl -X POST http://your-server/classify 
-         -H "Content-Type: application/json" 
+    curl -X POST http://your-server/classify
+         -H "Content-Type: application/json"
          -d '{"image_id": "example-image-123.jpg"}'
 
 Response format:
@@ -34,9 +41,13 @@ Response format:
 app = Flask(__name__)
 
 # Supabase Credentials
-SUPABASE_URL = "YOUR_SUPABASE_URL"
-SUPABASE_KEY = "YOUR_SUPABASE_API_KEY"
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY);
 
 # Load the pre-trained DenseNet121 model and modify for our classification task
 model = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=False)
@@ -50,7 +61,7 @@ model.classifier = nn.Sequential(
     nn.Dropout(0.3),
     nn.Linear(256, 23)  # Final layer with 23 output classes
 )
-model.load_state_dict(torch.load('Models/model_0.pth', map_location=torch.device('cpu')))
+model.load_state_dict(torch.load('../Models/model_0.pth', map_location=torch.device('cpu')))
 model.eval()
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -59,13 +70,13 @@ model.to(device)
 def preprocess_image(image_bytes):
     """
     Preprocess the input image for the model.
-    
+
     Args:
         image_bytes (bytes): Raw image data in bytes
-        
+
     Returns:
         torch.Tensor: Preprocessed image tensor ready for model input
-        
+
     Process:
     1. Resize image to 512x512 pixels
     2. Convert to tensor
@@ -83,14 +94,19 @@ def preprocess_image(image_bytes):
 def fetch_image_from_supabase(image_id):
     """
     Fetch image data from Supabase storage.
-    
+
     Args:
         image_id (str): The ID/path of the image in Supabase storage
-        
+
     Returns:
         bytes: Raw image data
     """
-    res = supabase.storage.from_('images').download(image_id)  # 'images' is the storage bucket
+    try:
+        res = supabase.storage.from_('images').download(image_id)  # 'images' is the storage bucket
+    except Exception as e:
+        raise Exception(f"Failed to download image from Supabase: {str(e)}")
+    # for testing use temp img
+    # res = open("./UploadImages/07PerioralDermEye.jpg", "rb").read()
     return res
 
 # Define class labels
@@ -134,16 +150,23 @@ def classify_image():
     try:
         # Fetch Image from Supabase
         image_bytes = fetch_image_from_supabase(image_id)
+        print(image_bytes)
         image_tensor = preprocess_image(image_bytes)
+        print(image_tensor)
 
         # Run Classification
         with torch.no_grad():
             outputs = model(image_tensor)
             predicted_class_index = outputs.argmax(1).item()
             predicted_label = class_labels[predicted_class_index]  # Get actual class name
+            print(predicted_label)
 
         # Save Classification Result in Supabase DB
-        supabase.table("image_results").insert({"image_id": image_id, "class": predicted_label}).execute()
+        # try:
+        #     supabase.table("image_results").insert({"image_id": image_id, "class": predicted_label}).execute()
+        # except Exception as e:
+        #     print(f"Failed to save classification result to database: {str(e)}")
+        #     # Continue processing even if database save fails
 
         return jsonify({"image_id": image_id, "predicted_class": predicted_label}), 200  # Return class name instead of index
 
