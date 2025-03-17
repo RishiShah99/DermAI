@@ -8,6 +8,7 @@ from supabase import create_client, Client
 from torch import nn
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 
 # Load environment variables
@@ -39,6 +40,9 @@ Response format:
 
 # Flask App Initialization
 app = Flask(__name__)
+# # Configure CORS to allow requests from your frontend
+# CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
+# You can also use CORS(app) to allow all origins, but that's less secure
 
 # Supabase Credentials
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -171,6 +175,7 @@ def classify_image():
         return jsonify({"image_id": image_id, "predicted_class": predicted_label}), 200  # Return class name instead of index
 
     except Exception as e:
+        print(e)
         return jsonify({"error": str(e)}), 500
 
 # Run Flask App
