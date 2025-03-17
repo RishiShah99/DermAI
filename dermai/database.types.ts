@@ -34,6 +34,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      chats: {
+        Row: {
+          classification: string | null
+          created_at: string
+          id: string
+          image_id: string | null
+          messages: Json | null
+          password: string
+        }
+        Insert: {
+          classification?: string | null
+          created_at?: string
+          id?: string
+          image_id?: string | null
+          messages?: Json | null
+          password: string
+        }
+        Update: {
+          classification?: string | null
+          created_at?: string
+          id?: string
+          image_id?: string | null
+          messages?: Json | null
+          password?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           body: string
@@ -76,6 +103,7 @@ export type Database = {
           id: number
           title: string
           body: string
+          file_metadata: Json
           similarity: number
         }[]
       }

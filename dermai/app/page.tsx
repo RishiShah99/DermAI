@@ -4,20 +4,184 @@ import { Input } from "@/components/ui/input";
 import { Message } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import ReactMarkdown, { Options } from "react-markdown";
 import React from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { LoadingIcon } from "@/components/icons";
 import { FileUpload } from "@/components/ui/file-upload";
+import { Button } from "@/components/ui/button";
+import { createClient } from "@/supabase/client";
+import crypto from "crypto";
+import { Tables } from "@/database.types";
+import { useMutation } from "@tanstack/react-query";
+import axios from "axios";
+import getSkinConditionInfo from "@/lib/classification";
 
-export default function Chat() {
+export default function Chat({ id }: { id?: string }) {
+  console.log(id);
+
   const [files, setFiles] = useState<File[]>([]);
+  const [chatLoading, setChatLoading] = useState<boolean>(true);
+  const [chat, setChat] = useState<Tables<"chats"> | null>(null);
+  const [classification, setClassification] = useState<{
+    image_id: string;
+    predicted_class: string;
+  } | null>(null);
+  const [password, setPassword] = useState<boolean>(true);
+
   const handleFileUpload = (files: File[]) => {
     setFiles(files);
     console.log(files);
   };
+
+  const postData = async (id: string) => {
+    const response = await axios.post("/api/classify", {
+      id,
+    });
+    return response.data;
+  };
+
+  const mutation = useMutation({
+    mutationFn: postData,
+    onSuccess: async (a) => {
+      // Optionally, you can refetch or update queries here
+      console.log("Data posted successfully!");
+      setClassification(a);
+
+      // Update Supabase
+      const { data, error } = await s
+        .from("chats")
+        .update({ classification: a.predicted_class })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error updating Supabase:", error);
+      }
+
+      if (data) {
+        console.log("Supabase updated successfully!");
+      }
+    },
+    onError: (error) => {
+      console.error("Error posting data:", error);
+      toast.error("Failed to connect to classification service");
+      setClassification(null);
+    },
+  });
+
+  // start analysis calls AI classification API with POST, having image_id in the body
+
+  const getChat = async () => {
+    if (!id) return;
+    const { data, error } = await createClient()
+      .from("chats")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (!data) {
+      toast.error("Chat not found");
+      return;
+    }
+    setChatLoading(false);
+    setChat(data);
+
+    // set messages
+    setMessages(JSON.parse(data?.messages) ?? [initialWelcomeMessage]);
+
+    // localstorage pw compare
+    const storedPassword = localStorage.getItem(`chatPassword`);
+    if (storedPassword && storedPassword === data?.password) {
+      setPassword(true);
+
+      if (!data.classification) {
+        await mutation.mutateAsync(data.id);
+      } else {
+        setClassification({
+          predicted_class: data.classification,
+          image_id: "",
+        });
+      }
+    } else {
+      setPassword(false);
+      toast.error("Password doesn't match or not provided");
+    }
+
+    if (error) {
+      toast.error("Failed to get chat");
+      return;
+    }
+    if (!data) {
+      toast.error("Chat not found");
+      return;
+    }
+    console.log(data);
+  };
+
+  // get chat password if the id exists, meaning existing chat
+  useEffect(() => {
+    if (!id) return;
+    getChat();
+  }, [id]);
+
+  const s = createClient();
+  const uploadToSupabase = async () => {
+    if (id) return;
+    // create a new field in the chats table
+    const { data: chat, error: err } = await s
+      .from("chats")
+      .insert({
+        // image_id: data.path,
+        password: crypto
+          .createHash("sha256")
+          .update(Math.random().toString())
+          .digest("hex")
+          .substring(0, 10),
+      })
+      .select("*")
+      .single();
+
+    if (!chat) {
+      toast.error("Failed to create chat");
+      console.log(err);
+      return;
+    }
+
+    // upload the image to the DB
+    const { data, error } = await s.storage
+      .from("images")
+      .upload(`${chat.id}/${files[0].name}`, files[0], {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    console.log(data);
+
+    if (error || !data) {
+      toast.error(error.message);
+      return;
+    }
+
+    // store this password in the user's session or local storage
+    localStorage.setItem("chatPassword", chat?.password);
+
+    // if any messages exist, add them to the chat
+    if (messages.length > 0) {
+      await s
+        .from("chats")
+        .update({
+          messages,
+        })
+        .eq("id", chat.id);
+    }
+
+    // redirect user to this new chat
+    window.location.href = `/${chat.id}`;
+  };
+
+  // effect for updating chats array on DB
 
   const [toolCall, setToolCall] = useState<string>();
 
@@ -36,7 +200,6 @@ export default function Chat() {
     handleInputChange,
     handleSubmit,
     status,
-    isLoading,
     setMessages,
   } = useChat({
     maxSteps: 3,
@@ -53,6 +216,7 @@ export default function Chat() {
 
   // Add the welcome message when component mounts
   useEffect(() => {
+    if (id) return;
     if (messages.length === 0) {
       setMessages([initialWelcomeMessage]);
     }
@@ -64,6 +228,20 @@ export default function Chat() {
   useEffect(() => {
     console.log(messages);
     if (messages.length > 0) setIsExpanded(true);
+
+    // update on supabase
+    const updateSupabase = async () => {
+      if (!id) return;
+      try {
+        await s.from("chats").update({ messages }).eq("id", id);
+      } catch (error) {
+        console.error("Error updating message status:", error);
+      }
+    };
+
+    if (id) {
+      updateSupabase();
+    }
   }, [messages]);
 
   // Scroll to bottom whenever messages change or when loading state changes
@@ -72,7 +250,7 @@ export default function Chat() {
       const scrollContainer = chatContainerRef.current;
       scrollContainer.scrollTop = scrollContainer.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, status]);
 
   const currentToolCall = useMemo(() => {
     const tools = messages?.slice(-1)[0]?.toolInvocations;
@@ -83,18 +261,6 @@ export default function Chat() {
       return undefined;
     }
   }, [toolCall, messages]);
-
-  const awaitingResponse = useMemo(() => {
-    if (
-      isLoading &&
-      currentToolCall === undefined &&
-      messages.slice(-1)[0]?.role === "user"
-    ) {
-      return true;
-    } else {
-      return false;
-    }
-  }, [isLoading, currentToolCall, messages]);
 
   // Modified to handle assistant-only message at the beginning
   const conversationPairs = useMemo(() => {
@@ -141,6 +307,31 @@ export default function Chat() {
     return pairs;
   }, [messages]);
 
+  if (!chat && id) {
+    if (chatLoading) {
+      return (
+        <div className="w-full h-screen fc">
+          <p className="text-neutral-600 dark:text-neutral-300 text-lg md:text-xl max-w-xl mx-auto">
+            Chat loading...
+          </p>
+        </div>
+      );
+    }
+  }
+
+  if (id && !password) {
+    return (
+      <div className="w-full h-screen fc">
+        <p className="text-neutral-600 dark:text-neutral-300 text-lg md:text-xl max-w-xl mx-auto">
+          You cannot access this chat.
+        </p>
+        <p className="text-neutral-600 dark:text-neutral-300 text-sm md:text-base max-w-xl mx-auto">
+          Your device is not authorized to access this chat.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full dark:bg-neutral-900 px-4 md:px-0 py-4 flex flex-col items-center">
       {/* Title and subtitle section */}
@@ -162,13 +353,79 @@ export default function Chat() {
         </motion.p>
       </header>
 
-      <div className="w-full max-w-3xl mb-8">
-        <FileUpload
-          onChange={handleFileUpload}
-          files={files}
-          setFiles={setFiles}
-        />
-      </div>
+      {/* section for analysis findings, show loading if loading, show  */}
+      {id && (
+        <section className="w-full max-w-3xl mb-8">
+          {id && (
+            <div className="bg-white dark:bg-neutral-800 p-4 rounded-lg shadow-md border-2 border-neutral-200 dark:border-neutral-700">
+              <h2 className="text-lg font-medium mb-2 text-neutral-800 dark:text-neutral-200">
+                Analysis Results
+              </h2>
+              {mutation.isPending && !classification ? (
+                <div className="flex items-center gap-2 text-neutral-600 dark:text-neutral-400">
+                  {!mutation.error && (
+                    <div className="animate-spin">
+                      <LoadingIcon className="animate-spin h-4 w-4" />
+                    </div>
+                  )}
+                  {/* red text if error */}
+                  <span
+                    className={
+                      mutation.error
+                        ? "text-red-500"
+                        : "text-neutral-600 dark:text-neutral-400"
+                    }
+                  >
+                    {mutation.error
+                      ? mutation.error.message
+                      : mutation.isIdle
+                        ? "Analysis is starting..."
+                        : mutation.isPending
+                          ? "Analyzing your image..."
+                          : ""}
+                  </span>
+                </div>
+              ) : mutation.error && !classification ? (
+                <p className="text-neutral-600 dark:text-neutral-400">
+                  An error occurred while analyzing your image. Please try again
+                  later.
+                </p>
+              ) : classification || mutation.isSuccess ? (
+                <div className="text-neutral-700 dark:text-neutral-300">
+                  <p className="mb-2">
+                    <span className="font-semibold">Classification:</span>{" "}
+                    {classification.predicted_class}
+                  </p>
+                  <p>{getSkinConditionInfo(classification.predicted_class)}</p>
+                  <p className="text-xs text-neutral-500">
+                    Note: This is an AI-powered analysis and should not be
+                    considered medical advice.
+                  </p>
+                </div>
+              ) : (
+                ""
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!id && (
+        <div className="w-full max-w-3xl mb-8 fc items-end">
+          <FileUpload
+            onChange={handleFileUpload}
+            files={files}
+            setFiles={setFiles}
+          />
+          <Button
+            onClick={uploadToSupabase}
+            disabled={!files.length}
+            className="bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            Upload Files
+          </Button>
+        </div>
+      )}
 
       <div className="flex flex-col items-center w-full max-w-3xl">
         <motion.div
