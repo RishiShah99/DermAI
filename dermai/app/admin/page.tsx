@@ -224,7 +224,7 @@ const Admin = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-neutral-50 dark:bg-neutral-900">
         <div className="w-full max-w-md bg-white dark:bg-neutral-800 p-8 rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold mb-6 text-center">DermAI Admin</h1>
+          <h1 className="text-2xl font-bold mb-6 text-center"></h1>
           <form onSubmit={handlePasswordSubmit} className="space-y-4">
             <div>
               <label

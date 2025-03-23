@@ -95,7 +95,7 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
       batch.map(async (text) => {
         const { embedding } = await embed({
           model: embeddingModel,
-          value: text.replaceAll("\n", " "),
+          value: sanitizeText(text.replaceAll("\n", " ")),
         });
         return embedding;
       }),
@@ -106,7 +106,13 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 
   return allEmbeddings;
 }
-
+function sanitizeText(text: string): string {
+  // Remove NULL bytes and other control characters
+  return text
+    .replace(/\u0000/g, "") // Remove NULL bytes
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "") // Remove other control characters
+    .replace(/\\u0000/g, ""); // Remove string representation of NULL bytes
+}
 export async function POST(request: Request) {
   try {
     const { fileId, fileName, publicURL } = await request.json();
@@ -151,7 +157,7 @@ export async function POST(request: Request) {
     const insertPromises = chunks.map((chunk, index) => {
       return supabase.from("documents").insert({
         title: fileName,
-        body: chunk,
+        body: sanitizeText(chunk),
         embedding: embeddings[index],
         file_metadata: {
           id: fileId,
