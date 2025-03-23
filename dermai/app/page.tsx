@@ -92,17 +92,6 @@ export default function Chat({ id }: { id?: string }) {
         console.error("Error updating Supabase:", error);
       }
 
-      // // Add system message about the analysis result
-      // const analysisMessage: Message = {
-      //   id: `analysis-${Date.now()}`,
-      //   role: "system",
-      //   content: `Analysis complete. Detected skin condition: ${data.predicted_class}`,
-      //   createdAt: new Date(),
-      // };
-
-      // // Add the analysis message to the conversation
-      // setMessages((prevMessages) => [...prevMessages, analysisMessage]);
-
       append({
         role: "user",
         content: `The image analysis detected ${data.predicted_class}. What are the next steps I should take?`,
@@ -294,67 +283,66 @@ export default function Chat({ id }: { id?: string }) {
   if (id && !password) {
     return <PasswordProtection isLoading={false} />;
   }
-
   return (
-    <div className="min-h-screen w-full dark:bg-neutral-900 px-4 md:px-0 py-4 flex flex-col items-center">
+    <div className="relative min-h-screen w-full">
+      <div className="absolute h-full w-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
       {/* Header */}
-      <header className="w-full max-w-3xl text-center mb-8 pt-8 md:pt-12">
-        <Link href="/">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 bg-gradient-to-r from-neutral-800 to-neutral-600 dark:from-neutral-200 dark:to-neutral-400 text-transparent bg-clip-text"
+      <div className="relative flex flex-col items-center w-full z-20">
+        <header className="w-full max-w-3xl text-center mb-8 pt-8 md:pt-12">
+          <Link href="/">
+            <motion.h1
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl md:text-5xl lg:text-6xl font-bold mb-3 bg-gradient-to-r from-neutral-800 to-neutral-600 dark:from-neutral-200 dark:to-neutral-400 text-transparent bg-clip-text"
+            >
+              DermAI
+            </motion.h1>
+          </Link>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-neutral-600 dark:text-neutral-300 text-lg md:text-xl max-w-xl mx-auto"
           >
-            DermAI
-          </motion.h1>
-        </Link>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-neutral-600 dark:text-neutral-300 text-lg md:text-xl max-w-xl mx-auto"
-        >
-          Your AI-powered assistant for skin health education and information
-        </motion.p>
-      </header>
-
-      {/* Analysis Results */}
-      {id && (
-        <section className="w-full max-w-3xl mb-8">
-          <AnalysisResults
-            mutation={mutation}
-            classification={classification}
+            Your AI-powered assistant for skin health education and information
+          </motion.p>
+        </header>
+        {/* Analysis Results */}
+        {id && (
+          <section className="w-full max-w-3xl mb-8">
+            <AnalysisResults
+              mutation={mutation}
+              classification={classification}
+            />
+          </section>
+        )}
+        {/* Image Upload (for new chats) */}
+        {!id && (
+          <ImageUpload
+            files={files}
+            setFiles={setFiles}
+            handleUpload={uploadToSupabase}
           />
-        </section>
-      )}
+        )}
+        {/* Chat Container */}
+        <div className="flex flex-col items-center w-full max-w-3xl">
+          <ChatContainer
+            isExpanded={isExpanded}
+            messages={messages}
+            status={status}
+            input={input}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
+            toolCall={toolCall}
+          />
 
-      {/* Image Upload (for new chats) */}
-      {!id && (
-        <ImageUpload
-          files={files}
-          setFiles={setFiles}
-          handleUpload={uploadToSupabase}
-        />
-      )}
-
-      {/* Chat Container */}
-      <div className="flex flex-col items-center w-full max-w-3xl">
-        <ChatContainer
-          isExpanded={isExpanded}
-          messages={messages}
-          status={status}
-          input={input}
-          handleInputChange={handleInputChange}
-          handleSubmit={handleSubmit}
-          toolCall={toolCall}
-        />
-
-        {/* Footer */}
-        <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 mt-4">
-          <p>
-            DermAI provides educational information only. Always consult a
-            healthcare professional for medical advice.
-          </p>
+          {/* Footer */}
+          <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 mt-4">
+            <p>
+              DermAI provides educational information only. Always consult a
+              healthcare professional for medical advice.
+            </p>
+          </div>
         </div>
       </div>
     </div>

@@ -33,15 +33,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const flaskResponse = await fetch("http://127.0.0.1:5000/classify", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const flaskResponse = await fetch(
+      "https://eft-lasting-hermit.ngrok-free.app/classify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image_id: body.id + "/" + img[0].name,
+        }),
       },
-      body: JSON.stringify({
-        image_id: body.id + "/" + img[0].name,
-      }),
-    });
+    );
 
     const data = await flaskResponse.json();
 
