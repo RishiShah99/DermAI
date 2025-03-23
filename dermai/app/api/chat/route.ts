@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     - In your final response, answer the user, and include the sources that you used in the annotations, not in the response itself
     - If a response requires multiple tools, call them sequentially without interim responses
     - ONLY respond to questions using information retrieved from tool calls
-    IMPORTANT: After answering the question, include source annotations in this format at the end of your response:
+    IMPORTANT: After answering EVERY question, include source annotations in this format at the end of your response:
 
       ---
       Sources:
