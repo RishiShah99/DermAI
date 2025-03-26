@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
 
   const result = streamText({
-    maxSteps: 2,
+    maxSteps: 20,
     model: google("gemini-2.0-flash-001"),
     messages,
     system: `You are DermAI, a friendly and professional assistant specializing in skin health and skin diseases, while also acting as the user's second brain for their medical information.
@@ -34,8 +34,8 @@ export async function POST(req: Request) {
 
       ---
       Sources:
-      - [Source 1](source1-url)
-      - [Source 2](source2-url)
+      - ["file title" - "source"](source1-url)
+      - ["file title" - "source"](source2-url)
       // Include additional sources as needed
 
     RESPONSE QUALITY STANDARDS:

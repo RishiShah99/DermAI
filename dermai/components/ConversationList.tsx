@@ -45,13 +45,14 @@ export default function ConversationList({
     }> = [];
 
     // Filter out any hidden prompt messages that we added programmatically
-    const visibleMessages = messages.filter(
-      (msg) =>
-        !(
-          msg.role === "user" &&
-          msg.content.includes("The image analysis detected")
-        ),
-    );
+    const visibleMessages = messages;
+    //   .filter(
+    //   (msg) =>
+    //     !(
+    //       msg.role === "user" &&
+    //       msg.content.includes("The image analysis detected")
+    //     ),
+    // );
 
     let i = 0;
     while (i < visibleMessages.length) {
@@ -131,7 +132,7 @@ export default function ConversationList({
                     isStreaming={status === "streaming"}
                   />
                 ) : item.userMessage ? (
-                  <LoadingIndicator tool={currentToolCall} />
+                  <LoadingIndicator tool={currentToolCall} status={status} />
                 ) : null}
               </>
             )}

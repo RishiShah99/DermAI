@@ -3,9 +3,12 @@ import { motion } from "framer-motion";
 
 interface LoadingProps {
   tool?: string;
+  status?: string;
 }
+export default function LoadingIndicator({ tool, status }: LoadingProps) {
+  // If status is "ready", don't display anything
+  if (status === "ready") return null;
 
-export default function LoadingIndicator({ tool }: LoadingProps) {
   const toolName =
     tool === "understandQuery"
       ? "Understanding query"

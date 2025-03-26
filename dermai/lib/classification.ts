@@ -76,4 +76,40 @@ function getSkinConditionInfo(key: string): string {
   );
 }
 
-export default getSkinConditionInfo;
+// Function to get a more user-friendly title from the classification key
+function getPrettifiedConditionName(key: string): string {
+  const prettyNames: Record<string, string> = {
+    "Acne and Rosacea Photos": "Acne or Rosacea",
+    "Actinic Keratosis Basal Cell Carcinoma and other Malignant Lesions":
+      "Potential Skin Cancer",
+    "Atopic Dermatitis Photos": "Atopic Dermatitis",
+    "Bullous Disease Photos": "Bullous Disease",
+    "Cellulitis Impetigo and other Bacterial Infections":
+      "Bacterial Skin Infection",
+    "Eczema Photos": "Eczema",
+    "Exanthems and Drug Eruptions": "Drug or Viral Rash",
+    "Hair Loss Photos Alopecia and other Hair Diseases": "Hair Loss Condition",
+    "Herpes HPV and other STDs Photos": "STD-Related Skin Condition",
+    "Light Diseases and Disorders of Pigmentation": "Pigmentation Disorder",
+    "Lupus and other Connective Tissue Diseases": "Connective Tissue Disease",
+    "Melanoma Skin Cancer Nevi and Moles": "Mole or Potential Melanoma",
+    "Nail Fungus and other Nail Disease": "Nail Disorder",
+    "Poison Ivy Photos and other Contact Dermatitis": "Contact Dermatitis",
+    "Psoriasis Pictures Lichen Planus and Related Diseases":
+      "Psoriasis or Lichen Planus",
+    "Scabies Lyme Disease and other Infestations and Bites":
+      "Infestation or Bite",
+    "Seborrheic Keratoses and other Benign Tumors": "Benign Growth",
+    "Systemic Disease": "Systemic Disease",
+    "Tinea Ringworm Candidiasis and other Fungal Infections":
+      "Fungal Infection",
+    "Urticaria Hives": "Hives",
+    "Vascular Tumors": "Vascular Growth",
+    "Vasculitis Photos": "Vasculitis",
+    "Warts Molluscum and other Viral Infections": "Viral Skin Infection",
+  };
+
+  return prettyNames[key as keyof typeof prettyNames] || key;
+}
+
+export { getPrettifiedConditionName, getSkinConditionInfo };

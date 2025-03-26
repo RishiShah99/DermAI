@@ -23,14 +23,32 @@ export default function Chat({ id }: { id?: string }) {
   const [files, setFiles] = useState<File[]>([]);
   const [chatLoading, setChatLoading] = useState<boolean>(true);
   const [chat, setChat] = useState<Tables<"chats"> | null>(null);
+  // Add this state to track elapsed time
+  const [classificationTime, setClassificationTime] = useState<string>("0.0s");
+  const [classificationTimer, setClassificationTimer] =
+    useState<NodeJS.Timeout | null>(null);
+
   const [classification, setClassification] = useState<{
     image_id: string;
+    confidence: number;
     predicted_class: string;
   } | null>(null);
   const [password, setPassword] = useState<boolean>(true);
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [toolCall, setToolCall] = useState<string>();
   const s = createClient();
+
+  // Add this function to start the timer
+  const startClassificationTimer = () => {
+    const startTime = Date.now();
+
+    const timer = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      setClassificationTime(`${elapsed.toFixed(1)}s`);
+    }, 100);
+
+    setClassificationTimer(timer);
+  };
 
   // Create an initial welcome message
   const initialWelcomeMessage: Message = {
@@ -75,22 +93,37 @@ export default function Chat({ id }: { id?: string }) {
   // Classification API mutation
   const mutation = useMutation({
     mutationFn: async (id: string) => {
+      startClassificationTimer();
       const response = await axios.post("/api/classify", { id });
       return response.data;
     },
     onSuccess: async (data) => {
-      console.log("Data posted successfully!");
-      setClassification(data);
+      if (classificationTimer) {
+        clearInterval(classificationTimer);
+        setClassificationTimer(null);
 
+        // fetch the classification
+      }
+      if (!id) return;
+
+      console.log("Data posted successfully!");
       // Update Supabase
       const { data: updatedData, error } = await s
         .from("chats")
         .update({ classification: data.predicted_class })
-        .eq("id", id);
+        .eq("id", id)
+        .select("*");
 
-      if (error) {
+      if (error || !updatedData) {
         console.error("Error updating Supabase:", error);
       }
+
+      console.log(updatedData);
+      setClassification({
+        predicted_class: updatedData[0].classification,
+        confidence: updatedData[0].confidence,
+        image_id: updatedData[0].image_id,
+      });
 
       append({
         role: "user",
@@ -98,6 +131,12 @@ export default function Chat({ id }: { id?: string }) {
       });
     },
     onError: (error) => {
+      // Clear the timer on error too
+      if (classificationTimer) {
+        clearInterval(classificationTimer);
+        setClassificationTimer(null);
+      }
+
       console.error("Error posting data:", error);
       toast.error("Failed to connect to classification service");
       setClassification(null);
@@ -144,6 +183,7 @@ export default function Chat({ id }: { id?: string }) {
       } else {
         setClassification({
           predicted_class: data.classification,
+          confidence: data.confidence,
           image_id: "",
         });
 
@@ -249,6 +289,7 @@ export default function Chat({ id }: { id?: string }) {
     // Update messages in Supabase for existing chats
     const updateSupabase = async () => {
       if (!id) return;
+      console.log("Updating Supabase");
       try {
         await s
           .from("chats")
@@ -272,6 +313,14 @@ export default function Chat({ id }: { id?: string }) {
     if (!id) return;
     getChat();
   }, [id]);
+
+  useEffect(() => {
+    return () => {
+      if (classificationTimer) {
+        clearInterval(classificationTimer);
+      }
+    };
+  }, [classificationTimer]);
 
   // Render loading or unauthorized state
   if (!chat && id) {
@@ -311,6 +360,7 @@ export default function Chat({ id }: { id?: string }) {
         {id && (
           <section className="w-full max-w-3xl mb-8">
             <AnalysisResults
+              classificationTime={classificationTime}
               mutation={mutation}
               classification={classification}
             />

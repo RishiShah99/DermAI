@@ -13,6 +13,7 @@
     "@ai-sdk/openai": "^1.1.15",
     "@ai-sdk/react": "^1.1.18",
     "@huggingface/inference": "^3.4.1",
+    "@radix-ui/react-progress": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
     "@supabase/ssr": "^0.5.2",
     "@tabler/icons-react": "^3.30.0",
