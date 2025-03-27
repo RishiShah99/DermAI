@@ -386,13 +386,92 @@ export default function Chat({ id }: { id?: string }) {
             toolCall={toolCall}
           />
 
-          {/* Footer */}
           <div className="text-center text-xs text-neutral-500 dark:text-neutral-400 mt-4">
             <p>
               DermAI provides educational information only. Always consult a
               healthcare professional for medical advice.
             </p>
           </div>
+
+          {/* Sources Information */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="mt-10 mb-8 w-full max-w-3xl border-t border-neutral-200 dark:border-neutral-700 pt-6"
+          >
+            <h3 className="text-center text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-4">
+              Our Information Sources
+            </h3>
+            <div className="prose prose-sm dark:prose-invert max-w-none text-neutral-600 dark:text-neutral-400 prose-p:leading-relaxed prose-headings:mb-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="flex flex-col space-y-1">
+                  <h4 className="font-medium">ScienceDirect Topics</h4>
+                  <p className="text-xs">
+                    A highly credible resource that compiles expert summaries
+                    from peer-reviewed scientific literature, ensuring accuracy
+                    and reliability in academic and medical topics.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <h4 className="font-medium">PMC (PubMed Central)</h4>
+                  <p className="text-xs">
+                    A trusted, government-maintained archive of biomedical and
+                    life sciences journal articles, sourced from reputable,
+                    peer-reviewed publications.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <h4 className="font-medium">Cleveland Clinic</h4>
+                  <p className="text-xs">
+                    A world-renowned nonprofit medical center recognized for its
+                    evidence-based healthcare, extensive medical research, and
+                    expert-reviewed health information.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <h4 className="font-medium">Johns Hopkins Medicine</h4>
+                  <p className="text-xs">
+                    One of the most prestigious academic medical institutions,
+                    known for its groundbreaking research, world-class
+                    healthcare, and contributions to medical advancements.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <h4 className="font-medium">NIAMS (NIH)</h4>
+                  <p className="text-xs">
+                    A division of the U.S. National Institutes of Health (NIH),
+                    ensuring authoritative, research-backed information on
+                    arthritis, musculoskeletal, and skin diseases.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-1">
+                  <h4 className="font-medium">BC Centre for Disease Control</h4>
+                  <p className="text-xs">
+                    A government-funded public health authority that provides
+                    reliable disease prevention guidance and epidemiological
+                    research.
+                  </p>
+                </div>
+
+                <div className="flex flex-col space-y-1 md:col-span-2">
+                  <h4 className="font-medium">Mayo Clinic</h4>
+                  <p className="text-xs">
+                    A globally respected nonprofit medical organization, known
+                    for its rigorous scientific research, expert-reviewed
+                    medical advice, and commitment to patient care excellence.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* add sources info here */}
         </div>
       </div>
     </div>

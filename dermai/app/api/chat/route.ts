@@ -34,8 +34,8 @@ export async function POST(req: Request) {
 
       ---
       Sources:
-      - ["file title" - "source"](source1-url)
-      - ["file title" - "source"](source2-url)
+      - [file title - source](source1-url)
+      - [file title - source](source2-url)
       // Include additional sources as needed
 
     RESPONSE QUALITY STANDARDS:

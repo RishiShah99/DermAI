@@ -113,16 +113,16 @@ def visualize_embeddings(documents):
             color='ID',  # Color points by document ID
             hover_name='Title',
             title='Document Embeddings Visualization in 3D Space',
-            labels={'x': 'Component 1', 'y': 'Component 2', 'z': 'Component 3'},
+            labels={'x': 'x', 'y': 'y', 'z': 'z'},
             opacity=0.7
         )
 
         # Improve layout
         fig.update_layout(
             scene=dict(
-                xaxis_title='Component 1',
-                yaxis_title='Component 2',
-                zaxis_title='Component 3'
+                xaxis_title='x',
+                yaxis_title='y',
+                zaxis_title='z'
             ),
             margin=dict(l=0, r=0, b=0, t=30)
         )
